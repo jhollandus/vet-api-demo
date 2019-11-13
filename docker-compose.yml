@@ -1,0 +1,176 @@
+version: "2.2"
+services:
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:5.3.1
+    restart: always
+    hostname: zookeeper
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_CLIENT_PORT: "2181"
+      ZOOKEEPER_TICK_TIME: "2000"
+    ports:
+      - "2181:2181"
+
+  kafka1:
+    image: confluentinc/cp-enterprise-kafka:5.3.1
+    hostname: kafka1
+    container_name: kafka1
+    depends_on:
+      - zookeeper
+    ports:
+      - "9091:9091"
+      - "29091:29091"
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT_HOST:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_HOST://localhost:9091,PLAINTEXT://kafka1:29091
+      KAFKA_BROKER_ID: 1
+      KAFKA_BROKER_RACK: "r1"
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_JMX_PORT: 9991
+      KAFKA_METRIC_REPORTERS: "io.confluent.metrics.reporter.ConfluentMetricsReporter"
+      CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: "kafka1:29091"
+      CONFLUENT_METRICS_REPORTER_MAX_REQUEST_SIZE: 10485760
+      # To avoid race condition with control-center
+      CONFLUENT_METRICS_REPORTER_TOPIC_CREATE: "false"
+
+
+  kafka2:
+    image: confluentinc/cp-enterprise-kafka:5.3.1
+    hostname: kafka2
+    container_name: kafka2
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT_HOST:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_HOST://localhost:9092,PLAINTEXT://kafka2:29092
+      KAFKA_BROKER_ID: 2
+      KAFKA_BROKER_RACK: "r1"
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_JMX_PORT: 9991
+      KAFKA_METRIC_REPORTERS: "io.confluent.metrics.reporter.ConfluentMetricsReporter"
+      CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: "kafka2:29092"
+      CONFLUENT_METRICS_REPORTER_MAX_REQUEST_SIZE: 10485760
+      # To avoid race condition with control-center
+      CONFLUENT_METRICS_REPORTER_TOPIC_CREATE: "false"
+
+  kafka3:
+    image: confluentinc/cp-enterprise-kafka:5.3.1
+    hostname: kafka3
+    container_name: kafka3
+    depends_on:
+      - zookeeper
+    ports:
+      - "9093:9093"
+      - "29093:29093"
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT_HOST:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_HOST://localhost:9093,PLAINTEXT://kafka3:29093
+      KAFKA_BROKER_ID: 3
+      KAFKA_BROKER_RACK: "r1"
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_JMX_PORT: 9991
+      KAFKA_METRIC_REPORTERS: "io.confluent.metrics.reporter.ConfluentMetricsReporter"
+      CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: "kafka3:29093"
+      CONFLUENT_METRICS_REPORTER_MAX_REQUEST_SIZE: 10485760
+      # To avoid race condition with control-center
+      CONFLUENT_METRICS_REPORTER_TOPIC_CREATE: "false"
+
+  schemaregistry:
+    image: confluentinc/cp-schema-registry:5.3.1
+    container_name: schemaregistry
+    restart: always
+    depends_on:
+      - zookeeper
+      - kafka1
+      - kafka2
+      - kafka3
+    environment:
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "PLAINTEXT://kafka1:29091,PLAINTEXT://kafka2:29092,PLAINTEXT://kafka3:29093"
+      SCHEMA_REGISTRY_HOST_NAME: schemaregistry
+      SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8085"
+      SCHEMA_REGISTRY_LOG4J_ROOT_LOGLEVEL: INFO
+    ports:
+      - 8085:8085
+
+  ksql-server:
+    image: confluentinc/cp-ksql-server:5.3.1
+    hostname: ksql-server
+    container_name: ksql-server
+    cpus: 0.5
+    restart: always
+    depends_on:
+      - kafka1
+      - kafka2
+    ports:
+      - "8088:8088"
+    volumes:
+      - ./scripts/security:/etc/kafka/secrets
+    environment:
+      KSQL_CONFIG_DIR: "/etc/ksql"
+      KSQL_LOG4J_OPTS: "-Dlog4j.configuration=file:/etc/ksql/log4j-rolling.properties"
+      KSQL_BOOTSTRAP_SERVERS: "kafka1:29091,kafka2:29092,kafka3:29093"
+      KSQL_HOST_NAME: ksql-server
+      KSQL_APPLICATION_ID: "demo"
+      KSQL_LISTENERS: "http://0.0.0.0:8088"
+      KSQL_CACHE_MAX_BYTES_BUFFERING: 0
+      KSQL_SASL_MECHANISM: PLAIN
+      KSQL_KSQL_SCHEMA_REGISTRY_URL: "http://schemaregistry:8085"
+      KSQL_PRODUCER_INTERCEPTOR_CLASSES: "io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor"
+      KSQL_CONSUMER_INTERCEPTOR_CLASSES: "io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor"
+      KSQL_KSQL_SERVER_UI_ENABLED: "false"
+
+  ksql-cli:
+    image: confluentinc/cp-ksql-cli:5.3.1
+    container_name: ksql-cli
+    cpus: 0.4
+    depends_on:
+      - kafka1
+      - ksql-server
+    entrypoint: /bin/sh
+    tty: true
+
+  control-center:
+    image: confluentinc/cp-enterprise-control-center:5.3.1
+    container_name: control-center
+    restart: always
+    depends_on:
+      - zookeeper
+      - kafka1
+      - kafka2
+      - kafka3
+    ports:
+      - "9021:9021"
+    environment:
+      CONTROL_CENTER_BOOTSTRAP_SERVERS: "kafka1:29091,kafka2:29092,kafka3:29093"
+      CONTROL_CENTER_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      CONTROL_CENTER_REPLICATION_FACTOR: 2
+      CONTROL_CENTER_MONITORING_INTERCEPTOR_TOPIC_REPLICATION: 2
+      CONTROL_CENTER_KSQL_URL: "http://ksql-server:8088"
+      CONTROL_CENTER_KSQL_ADVERTISED_URL: "http://localhost:8088"
+      CONTROL_CENTER_INTERNAL_TOPICS_REPLICATION: 2
+      CONTROL_CENTER_COMMAND_TOPIC_REPLICATION: 2
+      CONTROL_CENTER_METRICS_TOPIC_REPLICATION: 2
+      CONTROL_CENTER_MONITORING_INTERCEPTOR_TOPIC_PARTITIONS: 1
+      CONTROL_CENTER_INTERNAL_TOPICS_PARTITIONS: 1
+      CONTROL_CENTER_METRICS_TOPIC_PARTITIONS: 1
+      CONTROL_CENTER_STREAMS_NUM_STREAM_THREADS: 1
+      # Amount of heap to use for internal caches. Increase for better thoughput
+      CONTROL_CENTER_STREAMS_CACHE_MAX_BYTES_BUFFERING: 100000000
+      CONTROL_CENTER_SCHEMA_REGISTRY_URL: "http://schemaregistry:8085"
+      CONTROL_CENTER_DEPRECATED_VIEWS_ENABLE: "true"
+      CONTROL_CENTER_STREAMS_CONSUMER_REQUEST_TIMEOUT_MS: "960032"
+      CONTROL_CENTER_REST_LISTENERS: "http://0.0.0.0:9021"

@@ -1,0 +1,15 @@
+{
+  "type": "record",
+  "namespace": "io.confluent.ps",
+  "name": "KnownInstallation",
+  "fields" : [
+    {"name": "installId", "type":  ["null", "string"], "default": null},
+    {"name": "practiceName", "type": ["null" ,"string"], "default":  null},
+    {"name": "PIMS", "type": ["null", "string"], "default":  null},
+    {"name": "processedRange", "type": ["null", "long"], "default":  null},
+    {"name": "availableRange", "type": ["null", "long"], "default":  null},
+    {"name": "lastCheckTime", "type": ["null", "long"], "default":  null},
+    {"name": "lastProcessedTime", "type": ["null", "long"], "default":  null},
+    {"name": "discoveredTime", "type": ["null", "long"], "default":  null}
+  ]
+}

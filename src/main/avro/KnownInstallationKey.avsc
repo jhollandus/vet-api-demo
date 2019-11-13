@@ -1,0 +1,10 @@
+{
+  "type": "record",
+  "namespace": "io.confluent.ps",
+  "name": "KnownInstallationKey",
+  "fields" : [
+    {"name": "installId", "type":  ["null", "string"], "default": null},
+    {"name": "practiceName", "type": ["null" ,"string"], "default":  null},
+    {"name": "PIMS", "type": ["null", "string"], "default":  null}
+  ]
+}

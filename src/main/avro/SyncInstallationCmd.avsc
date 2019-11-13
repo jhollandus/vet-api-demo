@@ -1,0 +1,15 @@
+{
+  "type": "record",
+  "namespace": "io.confluent.ps",
+  "name": "SyncInstallationCmd",
+  "fields" : [
+    {"name": "correlationId", "type":  ["null", "string"], "default":  null},
+    {"name": "entityType", "type":  ["null", "string"], "default":  null},
+    {"name": "knownInstallation", "type": ["null", "KnownInstallation"], "default":  null},
+    {"name": "requestTime", "type": ["null", "long"], "default":  null},
+    {"name": "entityCompletions",
+     "type": {"type": "map", "values": "SyncInstallationCompletion"},
+     "default": {}
+    }
+  ]
+}

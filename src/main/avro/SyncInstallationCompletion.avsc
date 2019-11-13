@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "namespace": "io.confluent.ps",
+  "name": "SyncInstallationCompletion",
+  "fields" : [
+    {"name": "error", "type": ["null", "string"], "default":  null},
+    {"name": "successful", "type": "boolean", "default":  true},
+    {"name": "completionTime", "type": ["null", "long"], "default":  null},
+    {"name": "recordsProcessed", "type": "int", "default":  0}
+  ]
+}
